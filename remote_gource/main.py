@@ -1,21 +1,22 @@
+import asyncio
 import arrow
 import logging
-import confuse
 from .sources.bitbucket import BitbucketSource
+from .config import config
 
+# logging.basicConfig(level=logging.DEBUG)
 logging.basicConfig()
 
-config = confuse.Configuration('remote-gource', __name__)
 
-bitbucket_config = config['sources']['bitbucket'].get()
+async def main():
+    bitbucket_config = config['sources']['bitbucket'].get()
+    source = BitbucketSource(bitbucket_config, {
+        'date_start': arrow.get('2020-07-31')
+    })
 
-bitbucket_source = BitbucketSource(
-    bitbucket_config['workspace'],
-    bitbucket_config['client_id'],
-    bitbucket_config['client_secret'],
-    {
-        'date_start': arrow.get('2020-07-01')
-    }
-)
+    await source.setup()
+    await source.get_commits()
+    await source.teardown()
 
-bitbucket_source.get_commits()
+
+asyncio.run(main())
