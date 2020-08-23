@@ -4,7 +4,7 @@ import logging
 from .sources.bitbucket import BitbucketSource
 from .config import config
 from .types import Commit, Author
-from .gource.log import log_from_commits
+from .gource import generate_video
 
 logging.basicConfig(level=logging.DEBUG)
 # logging.basicConfig()
@@ -20,8 +20,6 @@ async def main():
     commits = await source.get_commits()
     await source.teardown()
 
-    gource_log = log_from_commits(commits)
-    print(gource_log)
-
+    generate_video(commits)
 
 asyncio.run(main())
