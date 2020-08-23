@@ -1,7 +1,9 @@
 from abc import ABC, abstractmethod
+from typing import List
+from remote_gource.types import Commit
 
 
 class AbstractRemoteSource():
     @abstractmethod
-    def get_commits(self, filters):
+    async def get_commits(self, filters) -> List[Commit]:
         pass

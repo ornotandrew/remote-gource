@@ -67,9 +67,9 @@ class Pagination:
             log.debug('Fetching all pages in parallel')
             numPages = math.ceil(first_page['size'] / params['pagelen'])
             return first_page['values'] + await self.parallel(numPages)
-        else:
-            log.debug('Fetching all pages in serial')
-            return first_page['values'] + await self.serial()
+
+        log.debug('Fetching all pages in serial')
+        return first_page['values'] + await self.serial()
 
     async def get_page(self, pageNumber):
         resp = await self.client.get(self.url, params=dict(**self.params, page=pageNumber))

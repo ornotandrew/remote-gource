@@ -11,6 +11,7 @@ import arrow
 from remote_gource.sources.bitbucket.pagination import Pagination
 from remote_gource.sources.bitbucket.utils import AuthToken, get_session
 from remote_gource.sources.remote_source import AbstractRemoteSource
+from remote_gource.types import Commit, Author
 
 log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
@@ -89,4 +90,21 @@ class BitbucketSource(AbstractRemoteSource):
         log.info(f'Processing {len(repos)} repos')
         commits_by_repo = await asyncio.gather(*[self.get_commits_for_repo(repo['slug'])
                                                  for repo in repos[:1]])  # TODO remove the slice
-        print(commits_by_repo[0][0])
+        flattened = [item for commits in commits_by_repo for item in commits]
+
+        # filter out commits without an author (these can be automatic things
+        # like version bumps etc)
+        flattened = [commit for commit in flattened if commit['author']]
+
+        return [
+            Commit(
+                timestamp=arrow.get(commit['date']).timestamp,
+                hash=commit['hash'],
+                author=Author(
+                    name=commit['author']['user']['display_name'],
+                    avatar_url=commit['author']['user']['links']['avatar']['href']
+                ),
+                diff=commit['diff']
+            )
+            for commit in flattened
+        ]
