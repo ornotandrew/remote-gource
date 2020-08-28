@@ -9,7 +9,8 @@ def log_lines_from_commit(commit: Commit) -> str:
     """
     touched_files = parse_diff(commit.diff)
     return [
-        f'{commit.timestamp}|{commit.author.name}|{f.action}|{f.path}'
+        # prepend the repo name to each path
+        f'{commit.timestamp}|{commit.author.name}|{f.action}|{commit.repo}/{f.path}'
         for f in touched_files
     ]
 

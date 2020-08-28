@@ -5,5 +5,5 @@ from remote_gource.types import Commit
 
 class AbstractRemoteSource():
     @abstractmethod
-    async def get_commits(self, filters) -> List[Commit]:
+    async def get_commits(self) -> List[Commit]:
         pass

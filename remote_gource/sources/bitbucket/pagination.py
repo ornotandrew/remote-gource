@@ -9,6 +9,8 @@ import arrow
 log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
 
+TIME_BETWEEN_REQUESTS = 3.6  # corresponds to 1000 requests/hour which is the rate limit
+
 
 def time_filter_query(filters, time_key):
     def to_iso_date(d: arrow): return d.format('YYYY-MM-DD')
@@ -32,6 +34,9 @@ class Pagination:
     all pages) field isn't always present in the response since it can be
     expensive to compute. In these cases, we fall back to a slower, serial
     approach.
+
+    Rate limiting also applies. In general, we want to make no more than ~0.27
+    requests/sec, or 1 request every 3.6 seconds.
     """
 
     def __init__(
@@ -73,6 +78,9 @@ class Pagination:
 
     async def get_page(self, pageNumber):
         resp = await self.client.get(self.url, params=dict(**self.params, page=pageNumber))
+        if resp.status != 200:
+            log.error(f'{resp.status}\n{await resp.text()}')
+            raise Exception(f'Failed to fetch page {pageNumber}')
         return await resp.json()
 
     async def serial(self):
@@ -81,6 +89,7 @@ class Pagination:
         pageNum = 2
         page = await self.get_page(pageNum)
         while page['values']:
+            await asyncio.sleep(TIME_BETWEEN_REQUESTS)
             values += page['values']
             pageNum += 1
             page = await self.get_page(pageNum)
@@ -89,6 +98,7 @@ class Pagination:
 
     async def parallel(self, numPages):
         """ Start from the second page, since we already have the first """
+        # TODO: rate limiting
         pages = await asyncio.gather(*[self.get_page(i) for i in range(2, numPages)])
         # return a flattened list
         return [item for page in pages for item in page['value']]

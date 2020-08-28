@@ -4,6 +4,7 @@ import logging
 import math
 import os
 from datetime import timedelta
+from typing import List
 
 import aiohttp
 import arrow
@@ -68,7 +69,6 @@ class BitbucketSource(AbstractRemoteSource):
 
         # the api doesn't support filtering by 'date', so we do that ourselves :(
         # https://community.developer.atlassian.com/t/how-do-i-filter-list-of-commits-from-rest-api-v2/15805/11
-        log.debug(metadata[0])
         if 'date_start' in self.filters:
             metadata = [i for i in metadata if arrow.get(i['date']).date() >= self.filters['date_start'].date()]
         if 'date_end' in self.filters:
@@ -76,20 +76,24 @@ class BitbucketSource(AbstractRemoteSource):
 
         log.debug(f'[{repo_slug}] Found {total_commits_found} commits, filtered to {len(metadata)}')
 
+        # fill out the diffs
         async def populate_diff(commit):
             resp = await self.client.get(f"{self.base_url}/{repo_slug}/diff/{commit['hash']}")
-            commit['diff'] = await resp.text()
+            commit['diff'] = (await resp.read()).decode()
 
         log.debug(f'[{repo_slug}] Attaching diffs')
         await asyncio.gather(*[populate_diff(commit) for commit in metadata])
 
-        return metadata
+        # attach the repo slug to the commit
+        return [dict(**m, repo_slug=repo_slug) for m in metadata]
 
     async def get_commits(self):
         repos = await self.get_repos()
+        log.info([repo['slug'] for repo in repos])
         log.info(f'Processing {len(repos)} repos')
-        commits_by_repo = await asyncio.gather(*[self.get_commits_for_repo(repo['slug'])
-                                                 for repo in repos[:1]])  # TODO remove the slice
+        # commits_by_repo = await asyncio.gather(*[self.get_commits_for_repo(repo['slug'])
+        #                                          for repo in repos])
+        commits_by_repo = [await self.get_commits_for_repo(repo['slug']) for repo in repos]
         flattened = [item for commits in commits_by_repo for item in commits]
 
         # filter out commits without an author (these can be automatic things
@@ -98,6 +102,7 @@ class BitbucketSource(AbstractRemoteSource):
 
         return [
             Commit(
+                repo=commit['repo_slug'],
                 timestamp=arrow.get(commit['date']).timestamp,
                 hash=commit['hash'],
                 author=Author(
@@ -108,3 +113,16 @@ class BitbucketSource(AbstractRemoteSource):
             )
             for commit in flattened
         ]
+
+    async def get_avatars(self, authors: List[Author]) -> dict:
+        async def get_avatar(author):
+            resp = await self.client.get(f"{author.avatar_url}")
+            return await resp.read()
+
+        avatars_by_author = dict(zip(
+            authors,
+            await asyncio.gather(*[get_avatar(author) for author in authors])
+        ))
+
+        return avatars_by_author
+
