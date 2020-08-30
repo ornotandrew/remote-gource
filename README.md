@@ -12,17 +12,7 @@ pip install remote-gource
 
 ## Building & Deploying
 
-First, build the package.
-
-```shell
-python setup.py sdist bdist_wheel
-```
-
-Then, upload it to [pypi.org](https://pypi.org).
-
-```shell
-twine upload dist/*
-```
+TODO.
 
 ## How it works (multi-repo)
 

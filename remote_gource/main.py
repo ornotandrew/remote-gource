@@ -27,4 +27,5 @@ async def main():
     write_avatars(user_images_dir, avatars_by_author)
 
 
-asyncio.run(main())
+if __name__ == '__main__':
+    asyncio.run(main())
