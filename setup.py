@@ -11,7 +11,7 @@ setuptools.setup(
     description='A wrapper around Gource which can read commits from third parties (Github etc)',
     long_description=long_description,
     long_description_content_type='text/markdown',
-    url='https://github.com/pypa/remote-gource',
+    url='https://github.com/wraithy/remote-gource',
     packages=setuptools.find_packages(),
     classifiers=[
         'Programming Language :: Python :: 3',

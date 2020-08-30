@@ -1,27 +1,30 @@
 import asyncio
-import arrow
 import logging
+
+from .config import get_config
+from .gource.log import log_from_commits
 from .sources.bitbucket import BitbucketSource
-from .config import config
-from .types import Commit, Author
-from .gource import generate_video
-from .gource.run import gource
+from .utils import write_log, write_avatars
 
 logging.basicConfig(level=logging.DEBUG)
-# logging.basicConfig()
 
 
 async def main():
-    bitbucket_config = config['sources']['bitbucket'].get()
-    source = BitbucketSource(bitbucket_config, {
-        'date_start': arrow.get('2020-06-01')
-    })
+    config = get_config()
+    log_file_path = config['log_file_path']
+    user_images_dir = config['user_images_dir']
+    filters = config['filters']
+    bitbucket_config = config['sources']['bitbucket']
+
+    source = BitbucketSource(bitbucket_config, filters)
 
     await source.setup()
     commits = await source.get_commits()
     avatars_by_author = await source.get_avatars(list({commit.author for commit in commits}))
     await source.teardown()
 
-    generate_video(commits, avatars_by_author)
+    write_log(log_file_path, log_from_commits(commits))
+    write_avatars(user_images_dir, avatars_by_author)
+
 
 asyncio.run(main())

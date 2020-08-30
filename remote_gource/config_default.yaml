@@ -1,0 +1,9 @@
+user_images_dir: ~/remote_gource/avatars
+log_file_path: ~/remote_gource/gource.log
+filters:
+  date_start: '2020-06-01'
+sources:
+  bitbucket:
+    client_id: ''
+    client_secret: ''
+    workspace: ''

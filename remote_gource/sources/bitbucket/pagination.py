@@ -9,11 +9,10 @@ import arrow
 log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
 
-TIME_BETWEEN_REQUESTS = 3.6  # corresponds to 1000 requests/hour which is the rate limit
-
 
 def time_filter_query(filters, time_key):
-    def to_iso_date(d: arrow): return d.format('YYYY-MM-DD')
+    def to_iso_date(d: arrow):
+        return d.format('YYYY-MM-DD')
 
     query = ''
     if "date_start" in filters:
@@ -39,14 +38,12 @@ class Pagination:
     requests/sec, or 1 request every 3.6 seconds.
     """
 
-    def __init__(
-        self,
-        client: aiohttp.ClientSession,
-        url: str,
-        filters: dict = {},
-        fields: List[str] = [],
-        time_key=None
-    ):
+    def __init__(self,
+                 client: aiohttp.ClientSession,
+                 url: str,
+                 filters: dict = {},
+                 fields: List[str] = [],
+                 time_key=None):
         self.client = client
         self.url = url
 
@@ -89,7 +86,6 @@ class Pagination:
         pageNum = 2
         page = await self.get_page(pageNum)
         while page['values']:
-            await asyncio.sleep(TIME_BETWEEN_REQUESTS)
             values += page['values']
             pageNum += 1
             page = await self.get_page(pageNum)
@@ -98,7 +94,7 @@ class Pagination:
 
     async def parallel(self, numPages):
         """ Start from the second page, since we already have the first """
-        # TODO: rate limiting
+        # TODO: rate limiting?
         pages = await asyncio.gather(*[self.get_page(i) for i in range(2, numPages)])
         # return a flattened list
         return [item for page in pages for item in page['value']]
